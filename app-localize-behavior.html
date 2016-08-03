@@ -115,7 +115,15 @@ Polymer.AppLocalizeBehavior = {
      * The language used for translation.
      */
     language: {
-      type: String
+      type: String,
+      observer: '_languageChanged'
+    },
+
+    /**
+      * Modify or add new resources (languages).
+    */
+    updateResources: {
+      type: Object
     },
 
     /**
@@ -163,7 +171,22 @@ Polymer.AppLocalizeBehavior = {
      */
     localize: {
       type: Function,
-      computed: '__computeLocalize(language, resources, formats)'
+      computed: '__prepareComputeLocalize(language, resources.*, formats)'
+    }
+  },
+
+  observers: [
+    '_extendLocales(resources, updateResources, language)'
+  ],
+
+  _languageChanged: function(newLanguage) {
+    this.set('language', newLanguage);
+  },
+
+  __prepareComputeLocalize: function(language, resources, formats) {
+    return function() {
+      var fun = this.__computeLocalize.call(this, this.language, this.resources, this.formats);
+      return fun.apply(this, arguments);
     }
   },
 
@@ -205,7 +228,7 @@ Polymer.AppLocalizeBehavior = {
 
     return function() {
       var key = arguments[0];
-      if (!key || !resources || !language)
+      if (!key || !resources || !language || !resources[language])
         return;
 
       // Cache the key/value pairs for the same language, so that we don't
@@ -225,6 +248,23 @@ Polymer.AppLocalizeBehavior = {
 
       return msg.format(args);
     };
+  },
+
+  _extendLocales: function (resources, updateResources, language) {
+    var languages;
+    if(this.resources) {
+      languages = Object.keys(this.resources);
+      for (var lang in updateResources) {
+        if (updateResources.hasOwnProperty(lang)) {
+          if (languages.indexOf(lang) >= 0) {
+            this.resources[lang] = Object.assign({}, this.resources[lang], updateResources[lang]);
+          } else {
+            this.resources[lang] = updateResources[lang];
+          }
+          this.notifyPath('resources.' + lang, this.resources[lang]);
+        }
+      }
+    } 
   },
 
   __onRequestResponse: function(event) {

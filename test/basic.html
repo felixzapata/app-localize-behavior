@@ -63,6 +63,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </template>
   </test-fixture>
 
+  <test-fixture id="add-languages">
+    <template>
+      <x-translate update-resources='{"de": { "greeting": "Guten Morgen"}}'></x-translate>
+    </template>
+  </test-fixture>
+
+  <test-fixture id="modify-languages">
+    <template>
+      <x-translate update-resources='{"en": { "greeting": "Hello!"}}'></x-translate>
+    </template>
+  </test-fixture>
+
+  <test-fixture id="add-and-set-language">
+    <template>
+      <x-translate language='es' update-resources='{"es": { "greeting": "buenos días"}}'></x-translate>
+    </template>
+  </test-fixture>
+
+  <test-fixture id="change-default-language">
+    <template>
+      <x-translate language='fr'></x-translate>
+    </template>
+  </test-fixture>
+
   <script>
     function getRequestsCache(elem) {
       return elem.constructor.prototype.__localizationCache.requests;
@@ -78,7 +102,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     function resetStringsCache(elem) {
       elem.constructor.prototype.__localizationCache.messages = {};
-    }
+    }getStringsCache
 
     suite('basic', function() {
       test('can translate a basic string', function() {
@@ -131,6 +155,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert.equal(app1.localize('greeting'), 'bonjour');
         assert.equal(app2.localize('intro', 'name', 'robin', 'numCats', 17), 'je m\'apelle robin. j\'ai 17 chats.');
       });
+
+      test('can add a new language into resources object', function() {
+        var app = fixture('add-languages');
+        expect(Object.keys(app.resources).length).to.be.equal(3);
+      });
+
+      test('can extend or modify the language inside my component', function() {
+        var app = fixture('modify-languages');
+        assert.equal(app.$.output.innerHTML, 'Hello!');
+        assert.equal(Object.keys(app.resources.en).length, 2);
+      });
+
+      test('can change default language', function() {
+        var app = fixture('change-default-language');
+        assert.equal(app.$.output.innerHTML, 'bonjour');
+      });
+
+      test('can add another language and set this language inside my component', function() {
+        var app = fixture('add-and-set-language');
+        assert.equal(app.language, 'es');
+        assert.equal(app.$.output.innerHTML, 'buenos días');
+      });
+
     });
 
     suite('external resources', function() {
@@ -150,6 +197,65 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           assert.equal(app.language, 'fr');
           assert.equal(app.$.output.innerHTML, 'bonjour');
 
+          done();
+        });
+
+        app.loadResources(app.resolveUrl('locales.json'));
+      });
+
+      test('can add a new language into resources object', function(done) {
+        var app = fixture('add-languages');
+
+        // Keep the tests independent by resetting the internal cache.
+        resetRequestsCache(app);
+
+        app.addEventListener('app-resources-loaded', function() {
+          assert.equal(Object.keys(app.resources).length, 3);
+          done();
+        });
+
+        app.loadResources(app.resolveUrl('locales.json'));
+      });
+
+      test('can extend or modify the language inside my component', function(done) {
+        var app = fixture('change-default-language');
+
+        // Keep the tests independent by resetting the internal cache.
+        resetRequestsCache(app);
+
+        var app = fixture('modify-languages');
+        app.addEventListener('app-resources-loaded', function() {
+          assert.equal(app.$.output.innerHTML, 'Hello!');
+          assert.equal(Object.keys(app.resources.en).length, 2);
+        done();
+        });
+
+        app.loadResources(app.resolveUrl('locales.json'));
+      });
+
+      test('can change default language', function(done) {
+        var app = fixture('change-default-language');
+
+        // Keep the tests independent by resetting the internal cache.
+        resetRequestsCache(app);
+
+        app.addEventListener('app-resources-loaded', function() {
+          assert.equal(app.$.output.innerHTML, 'bonjour');
+          done();
+        });
+
+        app.loadResources(app.resolveUrl('locales.json'));
+      });
+
+      test('can add another language and set this language inside my component', function(done) {
+        var app = fixture('add-and-set-language');
+
+        // Keep the tests independent by resetting the internal cache.
+        resetRequestsCache(app);
+
+        app.addEventListener('app-resources-loaded', function() {
+          assert.equal(app.language, 'es');
+          assert.equal(app.$.output.innerHTML, 'buenos días');
           done();
         });
 
